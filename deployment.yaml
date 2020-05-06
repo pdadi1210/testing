@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helloworld-application
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+      - name: hello-world
+        image: 868551682415.dkr.ecr.us-east-2.amazonaws.com/python-helloworld
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: helloworld-application
+spec:
+  selector:
+    app: webapp
+  ports:
+  - name: http
+    port: 80
+    nodePort: 0
+  type: LoadBalancer
