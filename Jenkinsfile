@@ -1,19 +1,33 @@
-pipeline {
-    agent any
-    stages {
-        stage('Build') {
-            steps {
-                sh 'building docker image'
-                sh '''
-                    pip install -r requirements.txt -t .
-					python -m unittest test
-					aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 500210368645.dkr.ecr.us-east-1.amazonaws.com/helloworldrepo
-					docker build -t helloworldrepo .
-					docker tag helloworldrepo:latest 868551682415.dkr.ecr.us-east-2.amazonaws.com/python-helloworld
-					docker push 868551682415.dkr.ecr.us-east-2.amazonaws.com/python-helloworld
-					kubectl apply -f kubernetes.yaml
-                '''
-            }
-        }
-    }
+pipeline{
+  agent any
+  stages{
+      stage('testing'){
+          steps{
+              git branch: 'master', credentialsId: 'pdadi1210', url: 'https://github.com/pdadi1210/testing.git'
+              sh 'pip3 install -r requirements.txt -t .'
+              sh 'python3 -m unittest test'
+          }
+      }
+stage('SSH transfer') {
+steps{
+ sh "zip -r sample.zip *"
+ git branch: 'master', credentialsId: 'pdadi1210', url: 'https://github.com/pdadi1210/testing.git'
+ script {
+  sshPublisher(
+   continueOnError: false, failOnError: true,
+   publishers: [
+    sshPublisherDesc(
+     configName: "eks-cluster-integration",
+     verbose: true,
+     transfers: [
+      sshTransfer(
+       sourceFiles: "sample.zip",
+       removePrefix: "",
+       remoteDirectory: "",
+       execCommand: "mkdir -p sample && rm -rf sample/* && unzip sample.zip -d sample && cd sample && docker build -t helloworldrepo . && docker tag helloworldrepo:latest 868551682415.dkr.ecr.us-east-2.amazonaws.com/python-helloworld && docker push 868551682415.dkr.ecr.us-east-2.amazonaws.com/python-helloworld && kubectl apply -f deployment.yaml "
+      )
+     ])
+   ])}
+ }
 }
+}}
